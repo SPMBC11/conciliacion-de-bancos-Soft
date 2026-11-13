@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+apps/api/src/generated/
+playwright-report/
+test-results/
+# Nunca versionar archivos financieros reales
+uploads/
+*.real.*
+dist-worker-dev/

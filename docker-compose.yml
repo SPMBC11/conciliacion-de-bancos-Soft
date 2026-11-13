@@ -1,0 +1,77 @@
+# Desarrollo local. Infraestructura: `npm run infra:up`. Todo en contenedores: `docker compose --profile app up --build`.
+name: finagent
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: finagent
+      POSTGRES_PASSWORD: finagent_dev
+      POSTGRES_DB: finagent
+      TZ: America/Bogota
+    ports: ['5432:5432']
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U finagent']
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.2-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    ports: ['6379:6379']
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      retries: 10
+
+  # Almacenamiento privado compatible con S3. MinIO dejó de publicar imágenes;
+  # SeaweedFS (Apache-2.0) expone la misma API S3. El bucket lo crea la API al arrancar.
+  storage:
+    image: chrislusf/seaweedfs:4.51
+    command: server -dir=/data -ip.bind=0.0.0.0 -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
+    ports: ['8333:8333']
+    volumes:
+      - storagedata:/data
+      - ./infra/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+
+  mailpit:
+    image: axllent/mailpit:v1.33.0
+    ports: ['1025:1025', '8025:8025']
+
+  api:
+    profiles: [app]
+    build: { context: ., dockerfile: infra/docker/api.Dockerfile }
+    command: ['sh', '-c', 'npx prisma migrate deploy && node dist/main.js']
+    env_file: .env
+    environment: &containerenv
+      DATABASE_URL: postgresql://finagent:finagent_dev@postgres:5432/finagent
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://storage:8333
+      SMTP_HOST: mailpit
+    ports: ['3000:3000']
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      storage: { condition: service_started }
+
+  worker:
+    profiles: [app]
+    build: { context: ., dockerfile: infra/docker/api.Dockerfile }
+    command: ['node', 'dist/worker.js']
+    env_file: .env
+    environment: *containerenv
+    depends_on:
+      api: { condition: service_started }
+
+  web:
+    profiles: [app]
+    build: { context: ., dockerfile: infra/docker/web.Dockerfile }
+    ports: ['5173:80']
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  redisdata:
+  storagedata:

@@ -1,0 +1,18 @@
+@import 'tailwindcss';
+
+/* Tokens base. El design system completo (claro/oscuro, semánticos) llega en la Fase 2. */
+@theme {
+  --color-bg: #f4f7fc;
+  --color-surface: #ffffff;
+  --color-primary: #145cff;
+  --color-text: #10213f;
+  --color-text-muted: #64748b;
+  --color-border: #dfe8f7;
+  --color-success: #16a36a;
+  --color-danger: #e05252;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+}

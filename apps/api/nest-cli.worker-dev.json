@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "sourceRoot": "src",
+  "entryFile": "worker",
+  "compilerOptions": { "tsConfigPath": "tsconfig.worker-dev.json", "deleteOutDir": true }
+}

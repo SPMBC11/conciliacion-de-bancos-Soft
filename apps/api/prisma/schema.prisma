@@ -1,0 +1,83 @@
+// FinAgent AI v1 — esquema relacional.
+// Reglas: UUID, dinero en Decimal(18,2), fechas contables en @db.Date, snake_case en BD.
+// Las tablas de cada módulo se agregan en la fase que las usa (ver docs/PHASE-0-AUDIT.md §4).
+
+generator client {
+  provider               = "prisma-client"
+  output                 = "../src/generated/prisma"
+  moduleFormat           = "esm"
+  importFileExtension    = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  DISABLED
+}
+
+enum AuditSource {
+  UI
+  API
+  WORKER
+  SYSTEM
+}
+
+model Organization {
+  id                     String             @id @default(uuid(7)) @db.Uuid
+  nit                    String             @unique
+  legalName              String             @map("legal_name")
+  functionalCurrency     String             @default("COP") @map("functional_currency") @db.Char(3)
+  status                 OrganizationStatus @default(ACTIVE)
+  createdAt              DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt              DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  createdBy              String?            @map("created_by") @db.Uuid
+
+  auditLogs AuditLog[]
+
+  @@map("organizations")
+}
+
+model User {
+  id           String     @id @default(uuid(7)) @db.Uuid
+  email        String     @unique
+  fullName     String     @map("full_name")
+  passwordHash String?    @map("password_hash")
+  status       UserStatus @default(INVITED)
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt    DateTime?  @map("deleted_at") @db.Timestamptz
+
+  @@map("users")
+}
+
+/// Bitácora inmutable: solo inserción (trigger en la migración bloquea UPDATE/DELETE).
+model AuditLog {
+  id             String        @id @default(uuid(7)) @db.Uuid
+  organizationId String?       @map("organization_id") @db.Uuid
+  actorId        String?       @map("actor_id") @db.Uuid
+  action         String
+  entity         String
+  entityId       String?       @map("entity_id")
+  before         Json?
+  after          Json?
+  reason         String?
+  source         AuditSource
+  ip             String?
+  correlationId  String?       @map("correlation_id")
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  organization Organization? @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, createdAt])
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}
