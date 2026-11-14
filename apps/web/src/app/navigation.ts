@@ -49,7 +49,7 @@ export type NavItem = {
 export type NavGroup = { label: string; items: NavItem[] };
 
 /** Fase actual del proyecto: controla qué rutas aparecen en el menú (no hay enlaces sin funcionalidad). */
-export const CURRENT_PHASE = 5;
+export const CURRENT_PHASE = 10;
 
 /** Mapa completo de navegación (sección 6 del master prompt). Única fuente de verdad de rutas. */
 export const NAVIGATION: NavGroup[] = [
@@ -57,29 +57,61 @@ export const NAVIGATION: NavGroup[] = [
     label: 'Mi espacio',
     items: [
       { path: '/dashboard', label: 'Panel financiero', icon: LayoutDashboard, phase: 2 },
-      { path: '/reconciliations', label: 'Resumen de conciliaciones', icon: ListChecks, phase: 7 },
-      { path: '/notifications', label: 'Notificaciones', icon: Bell, phase: 8 },
+      {
+        path: '/reconciliations',
+        label: 'Resumen de conciliaciones',
+        icon: ListChecks,
+        phase: 7,
+        permission: 'reconciliations.read',
+      },
+      { path: '/notifications', label: 'Notificaciones', icon: Bell, phase: 11 },
     ],
   },
   {
     label: 'Conciliación',
     items: [
-      { path: '/reconciliations/new', label: 'Nueva conciliación', icon: Plus, phase: 6 },
+      {
+        path: '/reconciliations/new',
+        label: 'Nueva conciliación',
+        icon: Plus,
+        phase: 6,
+        permission: 'reconciliations.prepare',
+      },
       {
         path: '/reconciliations/center',
         label: 'Centro de conciliación',
         icon: GitCompare,
         phase: 7,
+        permission: 'reconciliations.read',
       },
-      { path: '/reconciliations/pending', label: 'Pendientes', icon: Hourglass, phase: 7 },
+      {
+        path: '/reconciliations/pending',
+        label: 'Pendientes',
+        icon: Hourglass,
+        phase: 7,
+        permission: 'reconciliations.read',
+      },
       {
         path: '/reconciliations/discrepancies',
         label: 'Diferencias',
         icon: AlertTriangle,
         phase: 7,
+        permission: 'reconciliations.read',
       },
-      { path: '/reconciliations/unmatched', label: 'Sin identificar', icon: Search, phase: 7 },
-      { path: '/reconciliations/history', label: 'Historial', icon: History, phase: 8 },
+      {
+        path: '/reconciliations/unmatched',
+        label: 'Sin identificar',
+        icon: Search,
+        phase: 7,
+        permission: 'reconciliations.read',
+      },
+      {
+        path: '/reconciliations/history',
+        label: 'Ajustes y cierre',
+        icon: History,
+        phase: 8,
+        permission: 'reconciliations.read',
+      },
     ],
   },
   {
@@ -124,24 +156,36 @@ export const NAVIGATION: NavGroup[] = [
   {
     label: 'Análisis',
     items: [
-      { path: '/analysis/matches', label: 'Coincidencias', icon: Workflow, phase: 7 },
-      { path: '/analysis/duplicates', label: 'Duplicados', icon: Copy, phase: 7 },
-      { path: '/analysis/fees', label: 'Comisiones y GMF', icon: Receipt, phase: 9 },
-      { path: '/analysis/aging', label: 'Antigüedad de partidas', icon: Clock, phase: 9 },
+      {
+        path: '/analysis/matches',
+        label: 'Coincidencias',
+        icon: Workflow,
+        phase: 7,
+        permission: 'reconciliations.read',
+      },
+      {
+        path: '/analysis/duplicates',
+        label: 'Duplicados',
+        icon: Copy,
+        phase: 7,
+        permission: 'reconciliations.read',
+      },
+      { path: '/analysis/fees', label: 'Comisiones y GMF', icon: Receipt, phase: 11 },
+      { path: '/analysis/aging', label: 'Antigüedad de partidas', icon: Clock, phase: 11 },
     ],
   },
   {
     label: 'Informes',
     items: [
-      { path: '/reports', label: 'Reportes financieros', icon: BarChart3, phase: 9 },
+      { path: '/reports', label: 'Reportes financieros', icon: BarChart3, phase: 11 },
       {
         path: '/reports/reconciliation',
         label: 'Informes de conciliación',
         icon: FileBarChart,
         phase: 9,
       },
-      { path: '/reports/adjustments', label: 'Asientos de ajuste', icon: FileText, phase: 8 },
-      { path: '/reports/exports', label: 'Exportaciones', icon: Download, phase: 9 },
+      { path: '/reports/adjustments', label: 'Asientos de ajuste', icon: FileText, phase: 11 },
+      { path: '/reports/exports', label: 'Exportaciones', icon: Download, phase: 11 },
     ],
   },
   {
@@ -180,12 +224,13 @@ export const NAVIGATION: NavGroup[] = [
         label: 'Reglas de conciliación',
         icon: SlidersHorizontal,
         phase: 6,
+        permission: 'rules.manage',
       },
       {
         path: '/administration/classification-rules',
         label: 'Reglas de clasificación',
         icon: Tags,
-        phase: 6,
+        phase: 11,
       },
       { path: '/administration/holidays', label: 'Festivos', icon: CalendarDays, phase: 4 },
       {

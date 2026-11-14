@@ -31,6 +31,21 @@ enum AuditSource {
   SYSTEM
 }
 
+enum ReconciliationStatus {
+  PREPARATION
+  SUBMITTED
+  REVIEWED
+  APPROVED
+  CLOSED
+}
+
+enum AdjustmentStatus {
+  DRAFT
+  APPROVED
+  EXPORTED
+  REVERSED
+}
+
 model Organization {
   id                 String             @id @default(uuid(7)) @db.Uuid
   nit                String             @unique
@@ -55,6 +70,11 @@ model Organization {
   documents              Document[]
   bankTransactions       BankTransaction[]
   accountingTransactions AccountingTransaction[]
+  matchingRuleVersions   MatchingRuleVersion[]
+  matchingRuns           MatchingRun[]
+  confirmedMatches       ConfirmedMatch[]
+  reconciliations        Reconciliation[]
+  adjustmentEntries      AdjustmentEntry[]
 
   @@map("organizations")
 }
@@ -283,13 +303,16 @@ model BankAccount {
   updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz
   createdBy          String?         @map("created_by") @db.Uuid
 
-  organization Organization            @relation(fields: [organizationId], references: [id])
-  bank         Bank                    @relation(fields: [bankId], references: [id])
-  glAccount    GlAccount               @relation(fields: [glAccountId], references: [id])
-  members      MemberBankAccount[]
-  documents    Document[]
-  bankTxs      BankTransaction[]
-  bookTxs      AccountingTransaction[]
+  organization     Organization            @relation(fields: [organizationId], references: [id])
+  bank             Bank                    @relation(fields: [bankId], references: [id])
+  glAccount        GlAccount               @relation(fields: [glAccountId], references: [id])
+  members          MemberBankAccount[]
+  documents        Document[]
+  bankTxs          BankTransaction[]
+  bookTxs          AccountingTransaction[]
+  matchingRuns     MatchingRun[]
+  confirmedMatches ConfirmedMatch[]
+  reconciliations  Reconciliation[]
 
   @@unique([organizationId, bankId, accountNumberHmac])
   @@index([organizationId])
@@ -321,9 +344,10 @@ model GlAccount {
   updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz
   createdBy       String?      @map("created_by") @db.Uuid
 
-  organization Organization            @relation(fields: [organizationId], references: [id])
-  bankAccounts BankAccount[]
-  feeMappings  FeeTypeAccountMapping[]
+  organization    Organization            @relation(fields: [organizationId], references: [id])
+  bankAccounts    BankAccount[]
+  feeMappings     FeeTypeAccountMapping[]
+  adjustmentLines AdjustmentLine[]
 
   @@unique([organizationId, code])
   @@map("chart_of_accounts")
@@ -355,10 +379,13 @@ model AccountingPeriod {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   createdBy      String?  @map("created_by") @db.Uuid
 
-  organization Organization            @relation(fields: [organizationId], references: [id])
-  documents    Document[]
-  bankTxs      BankTransaction[]
-  bookTxs      AccountingTransaction[]
+  organization     Organization            @relation(fields: [organizationId], references: [id])
+  documents        Document[]
+  bankTxs          BankTransaction[]
+  bookTxs          AccountingTransaction[]
+  matchingRuns     MatchingRun[]
+  confirmedMatches ConfirmedMatch[]
+  reconciliations  Reconciliation[]
 
   @@unique([organizationId, year, month])
   @@map("accounting_periods")
@@ -410,6 +437,45 @@ enum DuplicateStatus {
   POSSIBLE
   CONFIRMED
   DISMISSED
+}
+
+enum MatchingRunStatus {
+  COMPLETED
+  FAILED
+}
+
+enum MatchingRuleKind {
+  EXACT
+  BUSINESS_DATE
+  GROUP_SUM
+  APPROXIMATE
+  FEE_CLASSIFICATION
+}
+
+enum MatchingResultStatus {
+  EXACT
+  PROBABLE
+  AMBIGUOUS
+  AMOUNT_DIFFERENCE
+  DATE_DIFFERENCE
+  BANK_UNMATCHED
+  BOOK_UNMATCHED
+  POSSIBLE_DUPLICATE
+  BANK_FEE
+  CARRIED_FORWARD
+}
+
+enum ConfirmedMatchStatus {
+  CONFIRMED
+  REVERSED
+}
+
+enum SuggestionReviewStatus {
+  OPEN
+  CONFIRMED
+  REJECTED
+  REQUIRES_REVIEW
+  REVERSED
 }
 
 /// Plantilla de lectura por banco (extracto) o por software contable (auxiliar). La configuración vive en versiones.
@@ -559,11 +625,12 @@ model BankTransaction {
   duplicateOfId         String?         @map("duplicate_of_id") @db.Uuid
   createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz
 
-  organization Organization     @relation(fields: [organizationId], references: [id])
-  bankAccount  BankAccount      @relation(fields: [bankAccountId], references: [id])
-  period       AccountingPeriod @relation(fields: [periodId], references: [id])
-  document     Document         @relation(fields: [documentId], references: [id])
-  documentRow  DocumentRow      @relation(fields: [documentRowId], references: [id])
+  organization        Organization         @relation(fields: [organizationId], references: [id])
+  bankAccount         BankAccount          @relation(fields: [bankAccountId], references: [id])
+  period              AccountingPeriod     @relation(fields: [periodId], references: [id])
+  document            Document             @relation(fields: [documentId], references: [id])
+  documentRow         DocumentRow          @relation(fields: [documentRowId], references: [id])
+  confirmedMatchItems ConfirmedMatchItem[]
 
   @@index([bankAccountId, operationDate])
   @@index([bankAccountId, amount])
@@ -598,15 +665,197 @@ model AccountingTransaction {
   duplicateOfId         String?         @map("duplicate_of_id") @db.Uuid
   createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz
 
-  organization Organization     @relation(fields: [organizationId], references: [id])
-  bankAccount  BankAccount      @relation(fields: [bankAccountId], references: [id])
-  period       AccountingPeriod @relation(fields: [periodId], references: [id])
-  document     Document         @relation(fields: [documentId], references: [id])
-  documentRow  DocumentRow      @relation(fields: [documentRowId], references: [id])
+  organization        Organization         @relation(fields: [organizationId], references: [id])
+  bankAccount         BankAccount          @relation(fields: [bankAccountId], references: [id])
+  period              AccountingPeriod     @relation(fields: [periodId], references: [id])
+  document            Document             @relation(fields: [documentId], references: [id])
+  documentRow         DocumentRow          @relation(fields: [documentRowId], references: [id])
+  confirmedMatchItems ConfirmedMatchItem[]
 
   @@index([bankAccountId, operationDate])
   @@index([bankAccountId, amount])
   @@index([bankAccountId, contentFingerprint])
   @@index([organizationId, periodId])
   @@map("accounting_transactions")
+}
+
+/// Snapshot versionado de las reglas deterministas de una organización.
+model MatchingRuleVersion {
+  id                         String   @id @default(uuid(7)) @db.Uuid
+  organizationId             String   @map("organization_id") @db.Uuid
+  version                    Int
+  dateToleranceBusinessDays  Int      @default(3) @map("date_tolerance_business_days") @db.SmallInt
+  amountTolerance            Decimal  @default(1000) @map("amount_tolerance") @db.Decimal(18, 2)
+  amountToleranceBasisPoints Int      @default(10) @map("amount_tolerance_basis_points") @db.SmallInt
+  maxGroupSize               Int      @default(6) @map("max_group_size") @db.SmallInt
+  createdAt                  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdBy                  String?  @map("created_by") @db.Uuid
+
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  runs         MatchingRun[]
+
+  @@unique([organizationId, version])
+  @@map("matching_rule_versions")
+}
+
+/// Ejecución reproducible sobre una cuenta y periodo, vinculada a la versión exacta de reglas.
+model MatchingRun {
+  id                   String            @id @default(uuid(7)) @db.Uuid
+  organizationId       String            @map("organization_id") @db.Uuid
+  bankAccountId        String            @map("bank_account_id") @db.Uuid
+  periodId             String            @map("period_id") @db.Uuid
+  ruleVersionId        String            @map("rule_version_id") @db.Uuid
+  status               MatchingRunStatus @default(COMPLETED)
+  inputFingerprint     String            @map("input_fingerprint") @db.Char(64)
+  idempotencyKey       String            @map("idempotency_key")
+  bankTransactionCount Int               @default(0) @map("bank_transaction_count")
+  bookTransactionCount Int               @default(0) @map("book_transaction_count")
+  suggestionCount      Int               @default(0) @map("suggestion_count")
+  createdAt            DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  createdBy            String            @map("created_by") @db.Uuid
+
+  organization Organization         @relation(fields: [organizationId], references: [id])
+  bankAccount  BankAccount          @relation(fields: [bankAccountId], references: [id])
+  period       AccountingPeriod     @relation(fields: [periodId], references: [id])
+  ruleVersion  MatchingRuleVersion  @relation(fields: [ruleVersionId], references: [id])
+  suggestions  MatchingSuggestion[]
+  matches      ConfirmedMatch[]
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, bankAccountId, periodId, createdAt])
+  @@map("matching_runs")
+}
+
+/// Resultado inmutable de una ejecución. Los IDs guardados permiten reproducir y explicar cada propuesta.
+model MatchingSuggestion {
+  id                       String                 @id @default(uuid(7)) @db.Uuid
+  runId                    String                 @map("run_id") @db.Uuid
+  rule                     MatchingRuleKind
+  status                   MatchingResultStatus
+  reviewStatus             SuggestionReviewStatus @default(OPEN) @map("review_status")
+  score                    Int                    @default(0) @db.SmallInt
+  bankTransactionIds       Json                   @default("[]") @map("bank_transaction_ids")
+  accountingTransactionIds Json                   @default("[]") @map("accounting_transaction_ids")
+  amountDifference         Decimal                @default(0) @map("amount_difference") @db.Decimal(18, 2)
+  dateDifferenceDays       Int                    @default(0) @map("date_difference_days")
+  explanation              String
+  feeType                  String?                @map("fee_type")
+  createdAt                DateTime               @default(now()) @map("created_at") @db.Timestamptz
+
+  run     MatchingRun      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  matches ConfirmedMatch[]
+
+  @@index([runId, status])
+  @@map("matching_suggestions")
+}
+
+/// Aceptación humana de una sugerencia. La unicidad por movimiento se aplica con índices parciales en SQL.
+model ConfirmedMatch {
+  id             String               @id @default(uuid(7)) @db.Uuid
+  organizationId String               @map("organization_id") @db.Uuid
+  bankAccountId  String               @map("bank_account_id") @db.Uuid
+  periodId       String               @map("period_id") @db.Uuid
+  runId          String               @map("run_id") @db.Uuid
+  suggestionId   String               @map("suggestion_id") @db.Uuid
+  status         ConfirmedMatchStatus @default(CONFIRMED)
+  confirmedBy    String               @map("confirmed_by") @db.Uuid
+  confirmedAt    DateTime             @default(now()) @map("confirmed_at") @db.Timestamptz
+  reversedBy     String?              @map("reversed_by") @db.Uuid
+  reversedAt     DateTime?            @map("reversed_at") @db.Timestamptz
+  reversalReason String?              @map("reversal_reason")
+
+  organization Organization         @relation(fields: [organizationId], references: [id])
+  bankAccount  BankAccount          @relation(fields: [bankAccountId], references: [id])
+  period       AccountingPeriod     @relation(fields: [periodId], references: [id])
+  run          MatchingRun          @relation(fields: [runId], references: [id])
+  suggestion   MatchingSuggestion   @relation(fields: [suggestionId], references: [id])
+  items        ConfirmedMatchItem[]
+
+  @@map("confirmed_matches")
+}
+
+model ConfirmedMatchItem {
+  id                      String     @id @default(uuid(7)) @db.Uuid
+  confirmedMatchId        String     @map("confirmed_match_id") @db.Uuid
+  side                    LedgerSide
+  bankTransactionId       String?    @map("bank_transaction_id") @db.Uuid
+  accountingTransactionId String?    @map("accounting_transaction_id") @db.Uuid
+  isActive                Boolean    @default(true) @map("is_active")
+
+  confirmedMatch        ConfirmedMatch         @relation(fields: [confirmedMatchId], references: [id], onDelete: Cascade)
+  bankTransaction       BankTransaction?       @relation(fields: [bankTransactionId], references: [id], onDelete: Restrict)
+  accountingTransaction AccountingTransaction? @relation(fields: [accountingTransactionId], references: [id], onDelete: Restrict)
+
+  @@index([confirmedMatchId])
+  @@map("confirmed_match_items")
+}
+
+/// Estado de revisión por cuenta y periodo. Cierre y snapshot quedan versionados.
+model Reconciliation {
+  id             String               @id @default(uuid(7)) @db.Uuid
+  organizationId String               @map("organization_id") @db.Uuid
+  bankAccountId  String               @map("bank_account_id") @db.Uuid
+  periodId       String               @map("period_id") @db.Uuid
+  status         ReconciliationStatus @default(PREPARATION)
+  version        Int                  @default(1)
+  preparedBy     String               @map("prepared_by") @db.Uuid
+  submittedAt    DateTime?            @map("submitted_at") @db.Timestamptz
+  reviewedBy     String?              @map("reviewed_by") @db.Uuid
+  reviewedAt     DateTime?            @map("reviewed_at") @db.Timestamptz
+  approvedBy     String?              @map("approved_by") @db.Uuid
+  approvedAt     DateTime?            @map("approved_at") @db.Timestamptz
+  closedAt       DateTime?            @map("closed_at") @db.Timestamptz
+  snapshot       Json?
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime             @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization      @relation(fields: [organizationId], references: [id])
+  bankAccount  BankAccount       @relation(fields: [bankAccountId], references: [id])
+  period       AccountingPeriod  @relation(fields: [periodId], references: [id])
+  adjustments  AdjustmentEntry[]
+
+  @@unique([bankAccountId, periodId])
+  @@index([organizationId, status])
+  @@map("reconciliations")
+}
+
+/// Asiento de ajuste, inmutable tras aprobación salvo reversión explícita.
+model AdjustmentEntry {
+  id                       String           @id @default(uuid(7)) @db.Uuid
+  organizationId           String           @map("organization_id") @db.Uuid
+  reconciliationId         String           @map("reconciliation_id") @db.Uuid
+  status                   AdjustmentStatus @default(DRAFT)
+  entryDate                DateTime         @map("entry_date") @db.Date
+  description              String
+  currency                 String           @db.Char(3)
+  reversalOfId             String?          @map("reversal_of_id") @db.Uuid
+  sourceReconcilingItemIds Json             @default("[]") @map("source_reconciling_item_ids")
+  createdBy                String           @map("created_by") @db.Uuid
+  approvedBy               String?          @map("approved_by") @db.Uuid
+  approvedAt               DateTime?        @map("approved_at") @db.Timestamptz
+  createdAt                DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+  reconciliation Reconciliation    @relation(fields: [reconciliationId], references: [id])
+  reversalOf     AdjustmentEntry?  @relation("AdjustmentReversal", fields: [reversalOfId], references: [id])
+  reversals      AdjustmentEntry[] @relation("AdjustmentReversal")
+  lines          AdjustmentLine[]
+
+  @@index([organizationId, reconciliationId, status])
+  @@map("adjustment_entries")
+}
+
+model AdjustmentLine {
+  id                String  @id @default(uuid(7)) @db.Uuid
+  adjustmentEntryId String  @map("adjustment_entry_id") @db.Uuid
+  glAccountId       String  @map("gl_account_id") @db.Uuid
+  debit             Decimal @default(0) @db.Decimal(18, 2)
+  credit            Decimal @default(0) @db.Decimal(18, 2)
+  costCenter        String? @map("cost_center")
+
+  entry     AdjustmentEntry @relation(fields: [adjustmentEntryId], references: [id], onDelete: Cascade)
+  glAccount GlAccount       @relation(fields: [glAccountId], references: [id])
+
+  @@index([adjustmentEntryId])
+  @@map("adjustment_entry_lines")
 }

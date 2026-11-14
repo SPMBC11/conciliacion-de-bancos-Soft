@@ -40,13 +40,14 @@ Todo en contenedores (sin Node local): `docker compose --profile app up --build`
 
 ## Scripts
 
-| Comando                           | Qué hace                                                   |
-| --------------------------------- | ---------------------------------------------------------- |
-| `npm run dev`                     | API + worker + web con recarga automática                  |
-| `npm test`                        | Pruebas de todos los paquetes (la API requiere `infra:up`) |
-| `npm run lint` / `npm run format` | ESLint / Prettier                                          |
-| `npm run typecheck`               | Verificación de tipos                                      |
-| `npm run db:migrate`              | Crea/aplica migraciones en desarrollo                      |
+| Comando                           | Qué hace                                                     |
+| --------------------------------- | ------------------------------------------------------------ |
+| `npm run dev`                     | API + worker + web con recarga automática                    |
+| `npm test`                        | Pruebas de todos los paquetes (la API requiere `infra:up`)   |
+| `npm run test:e2e`                | Smoke E2E Playwright en Chromium escritorio y viewport móvil |
+| `npm run lint` / `npm run format` | ESLint / Prettier                                            |
+| `npm run typecheck`               | Verificación de tipos                                        |
+| `npm run db:migrate`              | Crea/aplica migraciones en desarrollo                        |
 
 ## Estructura
 
@@ -67,4 +68,10 @@ docs/             Documentación por fase
 - [Fase 3 — Autenticación y administración](docs/PHASE-3-AUTH.md)
 - [Fase 4 — Configuración maestra](docs/PHASE-4-MASTER-DATA.md)
 - [Fase 5 — Documentos e importación](docs/PHASE-5-DOCUMENTS.md)
+- [Fase 6 — Motor de conciliación](docs/PHASE-6-RECONCILIATION-ENGINE.md)
+- [Fase 7 — Mesa de trabajo](docs/PHASE-7-WORKBENCH.md)
+- [Fase 8 — Ajustes y cierre](docs/PHASE-8-APPROVAL-CLOSING.md)
+- [Fase 9 — Informes](docs/PHASE-9-REPORTS.md)
+- [Fase 10 — QA y preparación](docs/PHASE-10-QA.md)
+- [Informe final](docs/FINAL-REPORT.md)
 - [Archivos de prueba ficticios](fixtures/README.md)

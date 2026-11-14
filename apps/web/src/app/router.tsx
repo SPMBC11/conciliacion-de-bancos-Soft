@@ -63,6 +63,72 @@ export const routes: RouteObject[] = [
             ...page(async () => (await import('@/features/dashboard/DashboardPage')).DashboardPage),
           },
           {
+            path: 'reconciliations',
+            ...page(async () => {
+              const { WorkbenchPage } = await import('@/features/reconciliation/WorkbenchPage');
+              return () => <WorkbenchPage mode="SUMMARY" />;
+            }, 'reconciliations.read'),
+          },
+          {
+            path: 'reconciliations/history',
+            ...page(
+              async () =>
+                (await import('@/features/reconciliation/ApprovalClosingPage')).ApprovalClosingPage,
+              'reconciliations.read',
+            ),
+          },
+          {
+            path: 'reconciliations/new',
+            ...page(
+              async () =>
+                (await import('@/features/reconciliation/NewReconciliationPage'))
+                  .NewReconciliationPage,
+              'reconciliations.prepare',
+            ),
+          },
+          {
+            path: 'reconciliations/center',
+            ...page(
+              async () => (await import('@/features/reconciliation/WorkbenchPage')).WorkbenchPage,
+              'reconciliations.read',
+            ),
+          },
+          {
+            path: 'reconciliations/pending',
+            ...page(async () => {
+              const { WorkbenchPage } = await import('@/features/reconciliation/WorkbenchPage');
+              return () => <WorkbenchPage mode="PENDING" />;
+            }, 'reconciliations.read'),
+          },
+          {
+            path: 'reconciliations/discrepancies',
+            ...page(async () => {
+              const { WorkbenchPage } = await import('@/features/reconciliation/WorkbenchPage');
+              return () => <WorkbenchPage mode="DIFFERENCES" />;
+            }, 'reconciliations.read'),
+          },
+          {
+            path: 'reconciliations/unmatched',
+            ...page(async () => {
+              const { WorkbenchPage } = await import('@/features/reconciliation/WorkbenchPage');
+              return () => <WorkbenchPage mode="UNMATCHED" />;
+            }, 'reconciliations.read'),
+          },
+          {
+            path: 'analysis/matches',
+            ...page(async () => {
+              const { WorkbenchPage } = await import('@/features/reconciliation/WorkbenchPage');
+              return () => <WorkbenchPage mode="MATCHES" />;
+            }, 'reconciliations.read'),
+          },
+          {
+            path: 'analysis/duplicates',
+            ...page(async () => {
+              const { WorkbenchPage } = await import('@/features/reconciliation/WorkbenchPage');
+              return () => <WorkbenchPage mode="DUPLICATES" />;
+            }, 'reconciliations.read'),
+          },
+          {
             path: 'documents',
             ...page(
               async () => (await import('@/features/documents/DocumentsPage')).DocumentsPage,
@@ -139,8 +205,22 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: 'reports/reconciliation',
+            ...page(
+              async () => (await import('@/features/reconciliation/ReportsPage')).ReportsPage,
+              'reconciliations.read',
+            ),
+          },
+          {
             path: 'administration/periods',
             ...page(async () => (await import('@/features/master-data/PeriodsPage')).PeriodsPage),
+          },
+          {
+            path: 'administration/rules',
+            ...page(
+              async () => (await import('@/features/reconciliation/RulesPage')).RulesPage,
+              'rules.manage',
+            ),
           },
           {
             path: 'administration/holidays',
