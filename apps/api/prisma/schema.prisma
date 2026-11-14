@@ -41,16 +41,20 @@ model Organization {
   updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz
   createdBy          String?            @map("created_by") @db.Uuid
 
-  auditLogs    AuditLog[]
-  members      OrganizationMember[]
-  roles        Role[]
-  invitations  Invitation[]
-  banks        Bank[]
-  bankAccounts BankAccount[]
-  glAccounts   GlAccount[]
-  feeMappings  FeeTypeAccountMapping[]
-  periods      AccountingPeriod[]
-  holidays     Holiday[]
+  auditLogs              AuditLog[]
+  members                OrganizationMember[]
+  roles                  Role[]
+  invitations            Invitation[]
+  banks                  Bank[]
+  bankAccounts           BankAccount[]
+  glAccounts             GlAccount[]
+  feeMappings            FeeTypeAccountMapping[]
+  periods                AccountingPeriod[]
+  holidays               Holiday[]
+  importTemplates        ImportTemplate[]
+  documents              Document[]
+  bankTransactions       BankTransaction[]
+  accountingTransactions AccountingTransaction[]
 
   @@map("organizations")
 }
@@ -250,8 +254,9 @@ model Bank {
   name           String
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  organization Organization? @relation(fields: [organizationId], references: [id])
+  organization Organization?    @relation(fields: [organizationId], references: [id])
   accounts     BankAccount[]
+  templates    ImportTemplate[]
 
   @@unique([organizationId, name])
   @@map("banks")
@@ -278,10 +283,13 @@ model BankAccount {
   updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz
   createdBy          String?         @map("created_by") @db.Uuid
 
-  organization Organization        @relation(fields: [organizationId], references: [id])
-  bank         Bank                @relation(fields: [bankId], references: [id])
-  glAccount    GlAccount           @relation(fields: [glAccountId], references: [id])
+  organization Organization            @relation(fields: [organizationId], references: [id])
+  bank         Bank                    @relation(fields: [bankId], references: [id])
+  glAccount    GlAccount               @relation(fields: [glAccountId], references: [id])
   members      MemberBankAccount[]
+  documents    Document[]
+  bankTxs      BankTransaction[]
+  bookTxs      AccountingTransaction[]
 
   @@unique([organizationId, bankId, accountNumberHmac])
   @@index([organizationId])
@@ -347,7 +355,10 @@ model AccountingPeriod {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   createdBy      String?  @map("created_by") @db.Uuid
 
-  organization Organization @relation(fields: [organizationId], references: [id])
+  organization Organization            @relation(fields: [organizationId], references: [id])
+  documents    Document[]
+  bankTxs      BankTransaction[]
+  bookTxs      AccountingTransaction[]
 
   @@unique([organizationId, year, month])
   @@map("accounting_periods")
@@ -366,4 +377,236 @@ model Holiday {
 
   @@unique([organizationId, date])
   @@map("holidays")
+}
+
+/// BANK = extracto bancario · BOOK = auxiliar contable de la cuenta banco.
+enum LedgerSide {
+  BANK
+  BOOK
+}
+
+enum DocumentStatus {
+  UPLOADED
+  IMPORTING
+  IMPORTED
+  FAILED
+}
+
+enum ImportStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum RowStatus {
+  OK
+  ERROR
+  SKIPPED
+}
+
+enum DuplicateStatus {
+  NONE
+  POSSIBLE
+  CONFIRMED
+  DISMISSED
+}
+
+/// Plantilla de lectura por banco (extracto) o por software contable (auxiliar). La configuración vive en versiones.
+model ImportTemplate {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  organizationId  String       @map("organization_id") @db.Uuid
+  name            String
+  side            LedgerSide
+  bankId          String?      @map("bank_id") @db.Uuid
+  software        String?
+  format          String
+  currentVersion  Int          @default(1) @map("current_version")
+  /// Firma del encabezado de la versión vigente: permite sugerir la plantilla al subir un archivo.
+  headerSignature String?      @map("header_signature")
+  status          ActiveStatus @default(ACTIVE)
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  createdBy       String?      @map("created_by") @db.Uuid
+
+  organization Organization            @relation(fields: [organizationId], references: [id])
+  bank         Bank?                   @relation(fields: [bankId], references: [id])
+  versions     ImportTemplateVersion[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, side, headerSignature])
+  @@map("import_templates")
+}
+
+model ImportTemplateVersion {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  templateId      String   @map("template_id") @db.Uuid
+  version         Int
+  config          Json
+  headerSignature String?  @map("header_signature")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdBy       String?  @map("created_by") @db.Uuid
+
+  template ImportTemplate   @relation(fields: [templateId], references: [id])
+  imports  DocumentImport[]
+
+  @@unique([templateId, version])
+  @@map("import_template_versions")
+}
+
+/// Archivo original, inmutable durante la retención. Mismo archivo (SHA-256) para la misma cuenta y lado → rechazado.
+model Document {
+  id             String         @id @default(uuid(7)) @db.Uuid
+  organizationId String         @map("organization_id") @db.Uuid
+  bankAccountId  String         @map("bank_account_id") @db.Uuid
+  periodId       String         @map("period_id") @db.Uuid
+  side           LedgerSide
+  fileName       String         @map("file_name")
+  format         String
+  sizeBytes      Int            @map("size_bytes")
+  sha256         String         @db.Char(64)
+  storageKey     String         @unique @map("storage_key")
+  status         DocumentStatus @default(UPLOADED)
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  uploadedBy     String         @map("uploaded_by") @db.Uuid
+
+  organization Organization            @relation(fields: [organizationId], references: [id])
+  bankAccount  BankAccount             @relation(fields: [bankAccountId], references: [id])
+  period       AccountingPeriod        @relation(fields: [periodId], references: [id])
+  imports      DocumentImport[]
+  bankTxs      BankTransaction[]
+  bookTxs      AccountingTransaction[]
+
+  @@unique([organizationId, bankAccountId, side, sha256])
+  @@index([organizationId, bankAccountId, periodId])
+  @@map("documents")
+}
+
+model DocumentImport {
+  id                String       @id @default(uuid(7)) @db.Uuid
+  documentId        String       @map("document_id") @db.Uuid
+  templateVersionId String?      @map("template_version_id") @db.Uuid
+  idempotencyKey    String       @unique @map("idempotency_key")
+  status            ImportStatus @default(QUEUED)
+  progress          Int          @default(0) @db.SmallInt
+  rowCount          Int          @default(0) @map("row_count")
+  importedCount     Int          @default(0) @map("imported_count")
+  skippedCount      Int          @default(0) @map("skipped_count")
+  errorCount        Int          @default(0) @map("error_count")
+  duplicateCount    Int          @default(0) @map("duplicate_count")
+  openingBalance    Decimal?     @map("opening_balance") @db.Decimal(18, 2)
+  closingBalance    Decimal?     @map("closing_balance") @db.Decimal(18, 2)
+  inflows           Decimal?     @db.Decimal(18, 2)
+  outflows          Decimal?     @db.Decimal(18, 2)
+  balanced          Boolean?
+  balanceDifference Decimal?     @map("balance_difference") @db.Decimal(18, 2)
+  /// Obligatoria si los saldos no cuadran (queda en auditoría).
+  justification     String?
+  warnings          Json         @default("[]")
+  failureReason     String?      @map("failure_reason")
+  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  startedAt         DateTime?    @map("started_at") @db.Timestamptz
+  finishedAt        DateTime?    @map("finished_at") @db.Timestamptz
+  createdBy         String       @map("created_by") @db.Uuid
+
+  document        Document               @relation(fields: [documentId], references: [id])
+  templateVersion ImportTemplateVersion? @relation(fields: [templateVersionId], references: [id])
+  rows            DocumentRow[]
+
+  @@index([documentId])
+  @@map("document_imports")
+}
+
+/// Fila de origen tal cual vino (raw) y su versión normalizada: trazabilidad completa.
+model DocumentRow {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  importId   String    @map("import_id") @db.Uuid
+  rowNumber  Int       @map("row_number")
+  raw        Json
+  normalized Json?
+  status     RowStatus
+  errors     Json      @default("[]")
+
+  import DocumentImport         @relation(fields: [importId], references: [id])
+  bankTx BankTransaction?
+  bookTx AccountingTransaction?
+
+  @@unique([importId, rowNumber])
+  @@map("document_rows")
+}
+
+/// Movimiento del extracto. Importe con signo: + entra, − sale. Nunca se elimina ni se sobrescribe el original.
+model BankTransaction {
+  id                    String          @id @default(uuid(7)) @db.Uuid
+  organizationId        String          @map("organization_id") @db.Uuid
+  bankAccountId         String          @map("bank_account_id") @db.Uuid
+  periodId              String          @map("period_id") @db.Uuid
+  documentId            String          @map("document_id") @db.Uuid
+  documentRowId         String          @unique @map("document_row_id") @db.Uuid
+  externalId            String?         @map("external_id")
+  operationDate         DateTime        @map("operation_date") @db.Date
+  valueDate             DateTime?       @map("value_date") @db.Date
+  descriptionOriginal   String          @map("description_original")
+  descriptionNormalized String          @map("description_normalized")
+  reference             String?
+  documentNumber        String?         @map("document_number")
+  amount                Decimal         @db.Decimal(18, 2)
+  currency              String          @db.Char(3)
+  runningBalance        Decimal?        @map("running_balance") @db.Decimal(18, 2)
+  contentFingerprint    String          @map("content_fingerprint") @db.Char(64)
+  sourceFingerprint     String          @unique @map("source_fingerprint") @db.Char(64)
+  duplicateStatus       DuplicateStatus @default(NONE) @map("duplicate_status")
+  duplicateOfId         String?         @map("duplicate_of_id") @db.Uuid
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz
+
+  organization Organization     @relation(fields: [organizationId], references: [id])
+  bankAccount  BankAccount      @relation(fields: [bankAccountId], references: [id])
+  period       AccountingPeriod @relation(fields: [periodId], references: [id])
+  document     Document         @relation(fields: [documentId], references: [id])
+  documentRow  DocumentRow      @relation(fields: [documentRowId], references: [id])
+
+  @@index([bankAccountId, operationDate])
+  @@index([bankAccountId, amount])
+  @@index([bankAccountId, contentFingerprint])
+  @@index([organizationId, periodId])
+  @@map("bank_transactions")
+}
+
+/// Movimiento del auxiliar contable (cuenta banco). Importe con signo: + débito (entra), − crédito (sale).
+model AccountingTransaction {
+  id                    String          @id @default(uuid(7)) @db.Uuid
+  organizationId        String          @map("organization_id") @db.Uuid
+  bankAccountId         String          @map("bank_account_id") @db.Uuid
+  periodId              String          @map("period_id") @db.Uuid
+  documentId            String          @map("document_id") @db.Uuid
+  documentRowId         String          @unique @map("document_row_id") @db.Uuid
+  externalId            String?         @map("external_id")
+  operationDate         DateTime        @map("operation_date") @db.Date
+  valueDate             DateTime?       @map("value_date") @db.Date
+  descriptionOriginal   String          @map("description_original")
+  descriptionNormalized String          @map("description_normalized")
+  reference             String?
+  documentNumber        String?         @map("document_number")
+  thirdParty            String?         @map("third_party")
+  thirdPartyNit         String?         @map("third_party_nit")
+  amount                Decimal         @db.Decimal(18, 2)
+  currency              String          @db.Char(3)
+  runningBalance        Decimal?        @map("running_balance") @db.Decimal(18, 2)
+  contentFingerprint    String          @map("content_fingerprint") @db.Char(64)
+  sourceFingerprint     String          @unique @map("source_fingerprint") @db.Char(64)
+  duplicateStatus       DuplicateStatus @default(NONE) @map("duplicate_status")
+  duplicateOfId         String?         @map("duplicate_of_id") @db.Uuid
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz
+
+  organization Organization     @relation(fields: [organizationId], references: [id])
+  bankAccount  BankAccount      @relation(fields: [bankAccountId], references: [id])
+  period       AccountingPeriod @relation(fields: [periodId], references: [id])
+  document     Document         @relation(fields: [documentId], references: [id])
+  documentRow  DocumentRow      @relation(fields: [documentRowId], references: [id])
+
+  @@index([bankAccountId, operationDate])
+  @@index([bankAccountId, amount])
+  @@index([bankAccountId, contentFingerprint])
+  @@index([organizationId, periodId])
+  @@map("accounting_transactions")
 }

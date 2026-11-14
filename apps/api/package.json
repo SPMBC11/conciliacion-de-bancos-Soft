@@ -13,7 +13,8 @@
     "test": "vitest run",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "bootstrap": "node dist/cli/bootstrap-owner.js"
+    "bootstrap": "node dist/cli/bootstrap-owner.js",
+    "test:perf": "PERF=1 vitest run test/perf.import.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1169.0",
@@ -39,7 +40,8 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "@finagent/parsers": "0.1.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.13",

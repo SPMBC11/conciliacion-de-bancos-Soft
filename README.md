@@ -66,3 +66,5 @@ docs/             Documentación por fase
 - [Fase 2 — Design system y layout](docs/PHASE-2-DESIGN-SYSTEM.md)
 - [Fase 3 — Autenticación y administración](docs/PHASE-3-AUTH.md)
 - [Fase 4 — Configuración maestra](docs/PHASE-4-MASTER-DATA.md)
+- [Fase 5 — Documentos e importación](docs/PHASE-5-DOCUMENTS.md)
+- [Archivos de prueba ficticios](fixtures/README.md)

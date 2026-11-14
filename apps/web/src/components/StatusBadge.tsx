@@ -39,6 +39,7 @@ export const STATUSES = {
   NEEDS_REVIEW: { label: 'Requiere revisión', icon: AlertTriangle, tone: 'warning' },
   REJECTED: { label: 'Rechazada', icon: XCircle, tone: 'danger' },
   IMPORT_ERROR: { label: 'Error de importación', icon: FileWarning, tone: 'danger' },
+  IMPORTED: { label: 'Importado', icon: CheckCircle2, tone: 'success' },
   APPROVED: { label: 'Aprobada', icon: ShieldCheck, tone: 'success' },
   CLOSED: { label: 'Cerrada', icon: Lock, tone: 'neutral' },
   // Movimientos en la mesa de trabajo

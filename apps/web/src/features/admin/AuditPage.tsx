@@ -50,6 +50,14 @@ export const ACTION_LABELS: Record<string, string> = {
   HOLIDAY_CREATED: 'Festivo agregado',
   HOLIDAY_DELETED: 'Festivo eliminado',
   PERIOD_OPENED: 'Periodo abierto',
+  DOCUMENT_UPLOADED: 'Archivo cargado',
+  DOCUMENT_IMPORT_REQUESTED: 'Importación solicitada',
+  DOCUMENT_IMPORTED: 'Archivo importado',
+  DOCUMENT_IMPORT_FAILED: 'Importación fallida',
+  DOCUMENT_DOWNLOADED: 'Original descargado',
+  TEMPLATE_CREATED: 'Plantilla creada',
+  TEMPLATE_UPDATED: 'Plantilla modificada',
+  DUPLICATE_DECIDED: 'Decisión sobre duplicado',
 };
 
 export const ENTITY_LABELS: Record<string, string> = {
@@ -66,6 +74,10 @@ export const ENTITY_LABELS: Record<string, string> = {
   fee_mapping: 'Mapeo de notas',
   holiday: 'Festivo',
   accounting_period: 'Periodo',
+  document: 'Documento',
+  import_template: 'Plantilla de importación',
+  bank_transaction: 'Movimiento bancario',
+  accounting_transaction: 'Movimiento contable',
 };
 
 const SOURCES: Record<string, string> = {

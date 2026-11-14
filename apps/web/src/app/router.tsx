@@ -63,6 +63,46 @@ export const routes: RouteObject[] = [
             ...page(async () => (await import('@/features/dashboard/DashboardPage')).DashboardPage),
           },
           {
+            path: 'documents',
+            ...page(
+              async () => (await import('@/features/documents/DocumentsPage')).DocumentsPage,
+              'reconciliations.read',
+            ),
+          },
+          {
+            path: 'documents/bank-statements',
+            ...page(async () => {
+              const { DocumentsPage } = await import('@/features/documents/DocumentsPage');
+              return () => <DocumentsPage side="BANK" />;
+            }, 'reconciliations.read'),
+          },
+          {
+            path: 'documents/accounting',
+            ...page(async () => {
+              const { DocumentsPage } = await import('@/features/documents/DocumentsPage');
+              return () => <DocumentsPage side="BOOK" />;
+            }, 'reconciliations.read'),
+          },
+          {
+            path: 'documents/imports',
+            ...page(
+              async () => (await import('@/features/documents/ImportsPage')).ImportsPage,
+              'reconciliations.read',
+            ),
+          },
+          {
+            path: 'documents/templates',
+            ...page(async () => (await import('@/features/documents/TemplatesPage')).TemplatesPage),
+          },
+          {
+            path: 'documents/:id',
+            ...page(
+              async () =>
+                (await import('@/features/documents/DocumentDetailPage')).DocumentDetailPage,
+              'reconciliations.read',
+            ),
+          },
+          {
             path: 'administration/users',
             ...page(
               async () => (await import('@/features/admin/UsersPage')).UsersPage,

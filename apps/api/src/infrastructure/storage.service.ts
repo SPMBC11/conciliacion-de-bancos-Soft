@@ -1,5 +1,12 @@
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { CreateBucketCommand, HeadBucketCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  CreateBucketCommand,
+  GetObjectCommand,
+  HeadBucketCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { config } from '../config.js';
 
 /** Almacenamiento privado de documentos (S3 compatible). Nunca se expone una URL pública. */
@@ -31,5 +38,33 @@ export class StorageService implements OnModuleInit {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Guarda un original. Nunca sobrescribe: si la clave ya existe, falla (los documentos son inmutables).
+   * El servidor S3 cifra en reposo cuando lo soporta (SSE); el hash SHA-256 queda como metadato.
+   */
+  async putImmutable(key: string, body: Uint8Array, sha256: string, contentType: string) {
+    const exists = await this.client
+      .send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }))
+      .then(
+        () => true,
+        () => false,
+      );
+    if (exists) throw new Error(`El objeto ${key} ya existe: los documentos son inmutables.`);
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+        Metadata: { sha256 },
+      }),
+    );
+  }
+
+  async get(key: string): Promise<Uint8Array> {
+    const res = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    return res.Body!.transformToByteArray();
   }
 }

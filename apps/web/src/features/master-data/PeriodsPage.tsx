@@ -52,7 +52,10 @@ export function PeriodsPage() {
 
   const opened = new Set(data.data?.periods.map((p) => p.month));
   const lastMonth = year < now.year ? 12 : year === now.year ? now.month : 0;
-  const nextToOpen = Array.from({ length: lastMonth }, (_, i) => i + 1).find((m) => !opened.has(m));
+  const openable = Array.from({ length: lastMonth }, (_, i) => i + 1).filter((m) => !opened.has(m));
+  const [toOpen, setToOpen] = useState<number | ''>('');
+  const selected =
+    toOpen && openable.includes(toOpen) ? toOpen : (openable[openable.length - 1] ?? '');
 
   return (
     <div className="space-y-6">
@@ -72,10 +75,26 @@ export function PeriodsPage() {
                 </option>
               ))}
             </NativeSelect>
-            {can('master_data.manage') && nextToOpen && (
-              <Button disabled={open.isPending} onClick={() => open.mutate(nextToOpen)}>
-                <CalendarPlus aria-hidden /> Abrir {MONTHS[nextToOpen - 1]}
-              </Button>
+            {can('master_data.manage') && openable.length > 0 && (
+              <>
+                <NativeSelect
+                  aria-label="Mes a abrir"
+                  value={selected}
+                  onChange={(e) => setToOpen(Number(e.target.value))}
+                >
+                  {openable.map((m) => (
+                    <option key={m} value={m}>
+                      {MONTHS[m - 1]}
+                    </option>
+                  ))}
+                </NativeSelect>
+                <Button
+                  disabled={open.isPending || !selected}
+                  onClick={() => selected && open.mutate(selected)}
+                >
+                  <CalendarPlus aria-hidden /> Abrir periodo
+                </Button>
+              </>
             )}
           </>
         }

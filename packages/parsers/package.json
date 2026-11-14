@@ -1,0 +1,26 @@
+{
+  "name": "@finagent/parsers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@types/papaparse": "^5.5.2"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.11.2",
+    "papaparse": "^5.7.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+    "@finagent/domain": "0.1.0"
+  }
+}

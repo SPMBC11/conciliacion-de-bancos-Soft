@@ -50,9 +50,10 @@ type Options = {
   method?: string;
   body?: unknown;
   query?: Record<string, string | number | undefined>;
+  headers?: Record<string, string>;
 };
 
-async function send(path: string, { method = 'GET', body, query }: Options = {}) {
+async function send(path: string, { method = 'GET', body, query, headers }: Options = {}) {
   if (method !== 'GET') await ensureCsrf();
   const qs = query
     ? '?' +
@@ -71,6 +72,7 @@ async function send(path: string, { method = 'GET', body, query }: Options = {})
       ...(body !== undefined && !isForm && { 'content-type': 'application/json' }),
       ...(method !== 'GET' && { [CSRF_HEADER]: readCookie(CSRF_COOKIE) ?? '' }),
       ...(orgId && { [ORG_HEADER]: orgId }),
+      ...headers,
     },
     body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
   });

@@ -49,7 +49,7 @@ export type NavItem = {
 export type NavGroup = { label: string; items: NavItem[] };
 
 /** Fase actual del proyecto: controla qué rutas aparecen en el menú (no hay enlaces sin funcionalidad). */
-export const CURRENT_PHASE = 4;
+export const CURRENT_PHASE = 5;
 
 /** Mapa completo de navegación (sección 6 del master prompt). Única fuente de verdad de rutas. */
 export const NAVIGATION: NavGroup[] = [
@@ -86,25 +86,39 @@ export const NAVIGATION: NavGroup[] = [
     label: 'Documentos',
     items: [
       {
+        path: '/documents',
+        label: 'Centro documental',
+        icon: FolderOpen,
+        phase: 5,
+        permission: 'reconciliations.read',
+      },
+      {
         path: '/documents/bank-statements',
         label: 'Extractos bancarios',
         icon: Landmark,
         phase: 5,
+        permission: 'reconciliations.read',
       },
       {
         path: '/documents/accounting',
         label: 'Archivos contables',
         icon: FileSpreadsheet,
         phase: 5,
+        permission: 'reconciliations.read',
       },
-      { path: '/documents/imports', label: 'Importaciones', icon: Upload, phase: 5 },
+      {
+        path: '/documents/imports',
+        label: 'Importaciones',
+        icon: Upload,
+        phase: 5,
+        permission: 'reconciliations.read',
+      },
       {
         path: '/documents/templates',
         label: 'Plantillas de importación',
         icon: FileInput,
         phase: 5,
       },
-      { path: '/documents', label: 'Centro documental', icon: FolderOpen, phase: 5 },
     ],
   },
   {

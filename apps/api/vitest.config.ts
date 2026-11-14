@@ -14,6 +14,8 @@ export default defineConfig({
       LOG_LEVEL: 'silent',
       DATABASE_URL: TEST_DATABASE_URL,
       AUTH_RATE_LIMIT: '1000',
+      // Base Redis separada: los trabajos de prueba nunca llegan a la cola de desarrollo.
+      REDIS_URL: 'redis://localhost:6379/1',
     },
     testTimeout: 15000,
     fileParallelism: false,

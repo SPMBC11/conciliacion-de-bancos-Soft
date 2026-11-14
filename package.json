@@ -13,7 +13,7 @@
     "infra:up": "docker compose up -d postgres redis storage mailpit",
     "infra:down": "docker compose down",
     "build": "npm run build --workspaces --if-present",
-    "dev": "npm run build -w @finagent/domain -w @finagent/contracts && concurrently -k -n api,worker,web -c blue,magenta,green \"npm run dev -w @finagent/api\" \"npm run dev:worker -w @finagent/api\" \"npm run dev -w @finagent/web\"",
+    "dev": "npm run build -w @finagent/domain -w @finagent/contracts -w @finagent/parsers && concurrently -k -n api,worker,web -c blue,magenta,green \"npm run dev -w @finagent/api\" \"npm run dev:worker -w @finagent/api\" \"npm run dev -w @finagent/web\"",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
