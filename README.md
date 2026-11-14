@@ -65,3 +65,4 @@ docs/             Documentación por fase
 - [Fase 1 — Fundación](docs/PHASE-1-FOUNDATION.md)
 - [Fase 2 — Design system y layout](docs/PHASE-2-DESIGN-SYSTEM.md)
 - [Fase 3 — Autenticación y administración](docs/PHASE-3-AUTH.md)
+- [Fase 4 — Configuración maestra](docs/PHASE-4-MASTER-DATA.md)

@@ -36,6 +36,20 @@ export const ACTION_LABELS: Record<string, string> = {
   ORGANIZATION_CREATED: 'Organización creada',
   ORGANIZATION_UPDATED: 'Organización modificada',
   BOOTSTRAP_OWNER_INVITED: 'Propietario inicial invitado',
+  MEMBER_ACCOUNT_SCOPE_UPDATED: 'Acceso a cuentas modificado',
+  BANK_CREATED: 'Banco agregado',
+  BANK_ACCOUNT_CREATED: 'Cuenta bancaria creada',
+  BANK_ACCOUNT_UPDATED: 'Cuenta bancaria modificada',
+  BANK_ACCOUNT_NUMBER_REVEALED: 'Número de cuenta consultado',
+  GL_ACCOUNT_CREATED: 'Cuenta contable creada',
+  GL_ACCOUNT_UPDATED: 'Cuenta contable modificada',
+  PUC_BASE_LOADED: 'PUC base cargado',
+  PUC_IMPORTED: 'PUC importado',
+  FEE_MAPPING_UPDATED: 'Mapeo de nota modificado',
+  FEE_MAPPING_SUGGESTED_APPLIED: 'Mapeo sugerido aplicado',
+  HOLIDAY_CREATED: 'Festivo agregado',
+  HOLIDAY_DELETED: 'Festivo eliminado',
+  PERIOD_OPENED: 'Periodo abierto',
 };
 
 export const ENTITY_LABELS: Record<string, string> = {
@@ -45,6 +59,13 @@ export const ENTITY_LABELS: Record<string, string> = {
   role: 'Rol',
   user: 'Usuario',
   user_session: 'Sesión',
+  bank: 'Banco',
+  bank_account: 'Cuenta bancaria',
+  gl_account: 'Cuenta contable',
+  chart_of_accounts: 'Plan de cuentas',
+  fee_mapping: 'Mapeo de notas',
+  holiday: 'Festivo',
+  accounting_period: 'Periodo',
 };
 
 const SOURCES: Record<string, string> = {

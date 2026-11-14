@@ -1,7 +1,9 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import type { RouteObject } from 'react-router';
 import { NAVIGATION, visibleNavigation } from '@/app/navigation';
+import { routes } from '@/app/router';
 import { meAs, mockApi, renderRoute } from '@/test-utils';
 
 const signedInAs = (role: Parameters<typeof meAs>[0]) =>
@@ -12,6 +14,14 @@ describe('navegación', () => {
     const paths = NAVIGATION.flatMap((g) => g.items.map((i) => i.path));
     expect(new Set(paths).size).toBe(paths.length);
     expect(paths.every((p) => p.startsWith('/'))).toBe(true);
+  });
+
+  it('cada pantalla visible en el menú tiene su ruta registrada (sin enlaces rotos)', () => {
+    const collect = (rs: RouteObject[]): string[] =>
+      rs.flatMap((r) => [...(r.path ? ['/' + r.path] : []), ...collect(r.children ?? [])]);
+    const registered = new Set(collect(routes));
+    const visible = visibleNavigation().flatMap((g) => g.items.map((i) => i.path));
+    expect(visible.filter((p) => !registered.has(p))).toEqual([]);
   });
 
   it('el menú solo muestra pantallas ya implementadas y permitidas', () => {

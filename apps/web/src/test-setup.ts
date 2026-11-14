@@ -1,6 +1,9 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
+
+// Las páginas se cargan bajo demanda: la primera transformación en pruebas puede tardar más de 1 s.
+configure({ asyncUtilTimeout: 5000 });
 
 // Algunas pruebas (contraste) corren en Node, sin DOM.
 if (typeof window !== 'undefined') {

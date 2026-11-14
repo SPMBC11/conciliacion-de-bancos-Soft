@@ -41,10 +41,16 @@ model Organization {
   updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz
   createdBy          String?            @map("created_by") @db.Uuid
 
-  auditLogs   AuditLog[]
-  members     OrganizationMember[]
-  roles       Role[]
-  invitations Invitation[]
+  auditLogs    AuditLog[]
+  members      OrganizationMember[]
+  roles        Role[]
+  invitations  Invitation[]
+  banks        Bank[]
+  bankAccounts BankAccount[]
+  glAccounts   GlAccount[]
+  feeMappings  FeeTypeAccountMapping[]
+  periods      AccountingPeriod[]
+  holidays     Holiday[]
 
   @@map("organizations")
 }
@@ -147,13 +153,16 @@ model OrganizationMember {
   userId         String       @map("user_id") @db.Uuid
   roleId         String       @map("role_id") @db.Uuid
   status         MemberStatus @default(ACTIVE)
+  /// ALL = todas las cuentas bancarias de la organización; SELECTED = solo las de member_bank_accounts.
+  accountScope   AccountScope @default(ALL) @map("account_scope")
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
   createdBy      String?      @map("created_by") @db.Uuid
 
-  organization Organization @relation(fields: [organizationId], references: [id])
-  user         User         @relation(fields: [userId], references: [id])
-  role         Role         @relation(fields: [roleId], references: [id])
+  organization Organization        @relation(fields: [organizationId], references: [id])
+  user         User                @relation(fields: [userId], references: [id])
+  role         Role                @relation(fields: [roleId], references: [id])
+  bankAccounts MemberBankAccount[]
 
   @@unique([organizationId, userId])
   @@index([userId])
@@ -212,4 +221,149 @@ model PasswordResetToken {
   user User @relation(fields: [userId], references: [id])
 
   @@map("password_reset_tokens")
+}
+
+enum AccountScope {
+  ALL
+  SELECTED
+}
+
+enum BankAccountType {
+  CORRIENTE
+  AHORROS
+}
+
+enum ActiveStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum GlNature {
+  DEBITO
+  CREDITO
+}
+
+/// Catálogo de bancos: precargados (organization_id nulo) o agregados por una organización.
+model Bank {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String?  @map("organization_id") @db.Uuid
+  name           String
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  accounts     BankAccount[]
+
+  @@unique([organizationId, name])
+  @@map("banks")
+}
+
+model BankAccount {
+  id                 String          @id @default(uuid(7)) @db.Uuid
+  organizationId     String          @map("organization_id") @db.Uuid
+  bankId             String          @map("bank_id") @db.Uuid
+  name               String
+  /// Número cifrado (AES-256-GCM, "v1:iv:tag:cifrado"). Nunca se guarda en claro.
+  accountNumberEnc   String          @map("account_number_enc")
+  /// HMAC del número: permite la restricción de unicidad sin conocer el número.
+  accountNumberHmac  String          @map("account_number_hmac")
+  accountLast4       String          @map("account_last4") @db.VarChar(4)
+  type               BankAccountType
+  currency           String          @db.Char(3)
+  glAccountId        String          @map("gl_account_id") @db.Uuid
+  openingBalance     Decimal         @map("opening_balance") @db.Decimal(18, 2)
+  openingBalanceDate DateTime        @map("opening_balance_date") @db.Date
+  openedAt           DateTime?       @map("opened_at") @db.Date
+  status             ActiveStatus    @default(ACTIVE)
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  createdBy          String?         @map("created_by") @db.Uuid
+
+  organization Organization        @relation(fields: [organizationId], references: [id])
+  bank         Bank                @relation(fields: [bankId], references: [id])
+  glAccount    GlAccount           @relation(fields: [glAccountId], references: [id])
+  members      MemberBankAccount[]
+
+  @@unique([organizationId, bankId, accountNumberHmac])
+  @@index([organizationId])
+  @@map("bank_accounts")
+}
+
+model MemberBankAccount {
+  memberId      String @map("member_id") @db.Uuid
+  bankAccountId String @map("bank_account_id") @db.Uuid
+
+  member      OrganizationMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  bankAccount BankAccount        @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+
+  @@id([memberId, bankAccountId])
+  @@map("member_bank_accounts")
+}
+
+/// Plan de cuentas (PUC) por organización.
+model GlAccount {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  organizationId  String       @map("organization_id") @db.Uuid
+  code            String       @db.VarChar(12)
+  name            String
+  nature          GlNature
+  level           Int          @db.SmallInt
+  acceptsMovement Boolean      @map("accepts_movement")
+  status          ActiveStatus @default(ACTIVE)
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  createdBy       String?      @map("created_by") @db.Uuid
+
+  organization Organization            @relation(fields: [organizationId], references: [id])
+  bankAccounts BankAccount[]
+  feeMappings  FeeTypeAccountMapping[]
+
+  @@unique([organizationId, code])
+  @@map("chart_of_accounts")
+}
+
+/// Tipo de nota bancaria → cuenta contable del asiento de ajuste.
+model FeeTypeAccountMapping {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  feeType        String   @map("fee_type")
+  glAccountId    String   @map("gl_account_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdBy      String?  @map("created_by") @db.Uuid
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  glAccount    GlAccount    @relation(fields: [glAccountId], references: [id])
+
+  @@unique([organizationId, feeType])
+  @@map("fee_type_account_mappings")
+}
+
+/// Mes contable de la organización. El estado por cuenta vive en la conciliación (cuenta + periodo).
+model AccountingPeriod {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  year           Int      @db.SmallInt
+  month          Int      @db.SmallInt
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdBy      String?  @map("created_by") @db.Uuid
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, year, month])
+  @@map("accounting_periods")
+}
+
+/// Festivos adicionales de la organización. Los nacionales se calculan (Ley 51 de 1983) y no se guardan.
+model Holiday {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  date           DateTime @db.Date
+  name           String
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdBy      String?  @map("created_by") @db.Uuid
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, date])
+  @@map("holidays")
 }

@@ -100,6 +100,8 @@ export class OrgGuard implements CanActivate {
         id: true,
         status: true,
         roleId: true,
+        accountScope: true,
+        bankAccounts: { select: { bankAccountId: true } },
         role: { select: { key: true, permissions: { select: { permissionKey: true } } } },
         organization: { select: { status: true } },
       },
@@ -118,6 +120,10 @@ export class OrgGuard implements CanActivate {
       roleId: member.roleId,
       roleKey: member.role.key,
       permissions,
+      bankAccountIds:
+        member.accountScope === 'ALL'
+          ? null
+          : new Set(member.bankAccounts.map((b) => b.bankAccountId)),
     };
     ctx().organizationId = orgId;
     return true;

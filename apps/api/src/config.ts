@@ -25,6 +25,12 @@ const Env = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET debe tener al menos 32 caracteres.'),
   COOKIE_SECURE: z.stringbool().default(false),
   AUTH_RATE_LIMIT: z.coerce.number().int().positive().default(10),
+  ENCRYPTION_KEY: z
+    .string()
+    .refine(
+      (v) => Buffer.from(v, 'base64').length === 32,
+      'ENCRYPTION_KEY debe ser 32 bytes en base64.',
+    ),
 });
 
 const parsed = Env.safeParse(process.env);

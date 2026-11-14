@@ -18,6 +18,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input, NativeSelect } from '@/components/ui/input';
 import { api, errorMessage } from '@/lib/api';
 import { formatDateTime } from '@/lib/datetime';
+import { useBankAccounts } from '@/features/master-data/api';
 import { type InvitationRow, type MemberRow, useMembers, useOrgKey, useRoles } from './api';
 
 type PendingChange =
@@ -34,6 +35,7 @@ export function UsersPage() {
   const usersKey = useOrgKey('users');
   const [inviteOpen, setInviteOpen] = useState(false);
   const [pending, setPending] = useState<PendingChange | null>(null);
+  const [scopeFor, setScopeFor] = useState<MemberRow | null>(null);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: usersKey });
   const apply = useMutation({
@@ -86,6 +88,29 @@ export function UsersPage() {
       cell: ({ row: { original: m } }) => (
         <StatusBadge status={m.status === 'ACTIVE' ? 'USER_ACTIVE' : 'USER_DISABLED'} />
       ),
+    },
+    {
+      id: 'accounts',
+      accessorFn: (m) => m.accountScope,
+      header: 'Cuentas bancarias',
+      cell: ({ row: { original: m } }) => {
+        const label =
+          m.accountScope === 'ALL'
+            ? 'Todas'
+            : `${m.bankAccounts.length} seleccionada${m.bankAccounts.length === 1 ? '' : 's'}`;
+        return canManage && m.user.id !== me?.user.id ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={`Cuentas bancarias de ${m.user.fullName}: ${label}. Cambiar`}
+            onClick={() => setScopeFor(m)}
+          >
+            {label}
+          </Button>
+        ) : (
+          label
+        );
+      },
     },
     {
       id: 'lastLogin',
@@ -221,6 +246,9 @@ export function UsersPage() {
       )}
 
       <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} onInvited={refresh} />
+      {scopeFor && (
+        <AccountScopeDialog member={scopeFor} onClose={() => setScopeFor(null)} onSaved={refresh} />
+      )}
       <ConfirmationDialog
         open={!!pending}
         onOpenChange={(o) => !o && setPending(null)}
@@ -301,6 +329,107 @@ function InviteDialog({
             </Button>
           </div>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Alcance por cuenta bancaria: Todas o solo las seleccionadas. */
+function AccountScopeDialog({
+  member,
+  onClose,
+  onSaved,
+}: {
+  member: MemberRow;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const accounts = useBankAccounts();
+  const [scope, setScope] = useState(member.accountScope);
+  const [selected, setSelected] = useState(
+    new Set(member.bankAccounts.map((b) => b.bankAccountId)),
+  );
+  const save = useMutation({
+    mutationFn: () =>
+      api(`/api/users/${member.id}/bank-accounts`, {
+        method: 'PUT',
+        body: { scope, bankAccountIds: scope === 'ALL' ? [] : [...selected] },
+      }),
+    onSuccess: () => {
+      toast.success('Acceso a cuentas actualizado');
+      onSaved();
+      onClose();
+    },
+  });
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent
+        title={`Cuentas bancarias de ${member.user.fullName}`}
+        description="Limita qué cuentas puede ver y conciliar este usuario."
+      >
+        <div className="space-y-4">
+          {save.isError && <FormAlert>{errorMessage(save.error)}</FormAlert>}
+          <fieldset className="space-y-2 text-sm">
+            <legend className="sr-only">Alcance</legend>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="scope"
+                checked={scope === 'ALL'}
+                onChange={() => setScope('ALL')}
+              />{' '}
+              Todas las cuentas
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="scope"
+                checked={scope === 'SELECTED'}
+                onChange={() => setScope('SELECTED')}
+              />{' '}
+              Solo las seleccionadas
+            </label>
+          </fieldset>
+          {scope === 'SELECTED' && (
+            <ul className="max-h-60 space-y-1 overflow-auto rounded-lg border border-border p-2 text-sm">
+              {accounts.data?.length === 0 && (
+                <li className="text-muted-foreground">No hay cuentas bancarias registradas.</li>
+              )}
+              {accounts.data?.map((a) => (
+                <li key={a.id}>
+                  <label className="flex items-center gap-2 rounded-md p-1 hover:bg-surface-secondary">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(a.id)}
+                      onChange={() => toggle(a.id)}
+                    />
+                    {a.bank.name} · {a.name}{' '}
+                    <span className="tabular text-muted-foreground">{a.maskedNumber}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={save.isPending || (scope === 'SELECTED' && selected.size === 0)}
+              onClick={() => save.mutate()}
+            >
+              Guardar
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

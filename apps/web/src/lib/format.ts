@@ -54,3 +54,22 @@ export function greeting(now = new Date()): string {
   const h = bogotaHour(now);
   return h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
 }
+
+/**
+ * Importe escrito por el usuario en formato colombiano → string de API, sin pasar por Number.
+ * "1.234.567,89" → "1234567.89" · "-4.000" → "-4000" · "15000,5" → "15000.5". Inválido → null.
+ * El punto es separador de miles y la coma, decimal (es-CO).
+ */
+export function parseLocalAmount(input: string): string | null {
+  const s = input.trim().replace(/\s|\$/g, '').replace('−', '-');
+  const m = /^(-)?(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,2}))?$/.exec(s);
+  if (!m) return null;
+  const [, sign = '', int, frac] = m;
+  const digits = int!.replace(/\./g, '').replace(/^0+(?=\d)/, '');
+  return `${sign}${digits}${frac ? `.${frac}` : ''}`;
+}
+
+/** String de API → texto editable en formato colombiano ("1234567.89" → "1.234.567,89"). */
+export function toLocalAmountInput(amount: string): string {
+  return formatMoney(amount).replace(/^−?(\$|US\$) /, amount.startsWith('-') ? '-' : '');
+}

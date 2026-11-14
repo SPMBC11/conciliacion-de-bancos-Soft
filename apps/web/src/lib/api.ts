@@ -61,16 +61,18 @@ async function send(path: string, { method = 'GET', body, query }: Options = {})
       )
     : '';
   const orgId = readPref('org');
+  const isForm = body instanceof FormData;
   return fetch(path + qs, {
     method,
     credentials: 'same-origin',
     headers: {
       'x-client': 'web',
-      ...(body !== undefined && { 'content-type': 'application/json' }),
+      // FormData: el navegador fija el content-type multipart con su boundary.
+      ...(body !== undefined && !isForm && { 'content-type': 'application/json' }),
       ...(method !== 'GET' && { [CSRF_HEADER]: readCookie(CSRF_COOKIE) ?? '' }),
       ...(orgId && { [ORG_HEADER]: orgId }),
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
   });
 }
 

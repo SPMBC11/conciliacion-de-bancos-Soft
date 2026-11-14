@@ -49,7 +49,7 @@ export type NavItem = {
 export type NavGroup = { label: string; items: NavItem[] };
 
 /** Fase actual del proyecto: controla qué rutas aparecen en el menú (no hay enlaces sin funcionalidad). */
-export const CURRENT_PHASE = 3;
+export const CURRENT_PHASE = 4;
 
 /** Mapa completo de navegación (sección 6 del master prompt). Única fuente de verdad de rutas. */
 export const NAVIGATION: NavGroup[] = [
@@ -138,6 +138,7 @@ export const NAVIGATION: NavGroup[] = [
         label: 'Cuentas bancarias',
         icon: Building2,
         phase: 4,
+        permission: 'bank_accounts.read',
       },
       {
         path: '/administration/chart-of-accounts',

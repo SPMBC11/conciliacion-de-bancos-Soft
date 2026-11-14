@@ -26,6 +26,8 @@ export type ActiveMembership = {
   roleId: string;
   roleKey: string;
   permissions: Set<string>;
+  /** null = acceso a todas las cuentas bancarias; si no, solo a estas. */
+  bankAccountIds: Set<string> | null;
 };
 
 export const CurrentUser = createParamDecorator(

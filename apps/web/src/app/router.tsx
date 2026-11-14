@@ -84,6 +84,29 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: 'administration/bank-accounts',
+            ...page(
+              async () =>
+                (await import('@/features/master-data/BankAccountsPage')).BankAccountsPage,
+              'bank_accounts.read',
+            ),
+          },
+          {
+            path: 'administration/chart-of-accounts',
+            ...page(
+              async () =>
+                (await import('@/features/master-data/ChartOfAccountsPage')).ChartOfAccountsPage,
+            ),
+          },
+          {
+            path: 'administration/periods',
+            ...page(async () => (await import('@/features/master-data/PeriodsPage')).PeriodsPage),
+          },
+          {
+            path: 'administration/holidays',
+            ...page(async () => (await import('@/features/master-data/HolidaysPage')).HolidaysPage),
+          },
+          {
             path: 'settings',
             ...page(
               async () => (await import('@/features/settings/PreferencesPage')).PreferencesPage,

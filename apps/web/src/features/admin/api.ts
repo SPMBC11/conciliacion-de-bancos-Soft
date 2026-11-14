@@ -15,6 +15,8 @@ export type RoleRow = {
 export type MemberRow = {
   id: string;
   status: 'ACTIVE' | 'DISABLED';
+  accountScope: 'ALL' | 'SELECTED';
+  bankAccounts: { bankAccountId: string }[];
   createdAt: string;
   user: { id: string; email: string; fullName: string; lastLoginAt: string | null };
   role: { id: string; key: string; name: string };

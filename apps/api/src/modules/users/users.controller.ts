@@ -8,10 +8,15 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { InviteUserRequest, UpdateMemberRequest } from '@finagent/contracts';
+import {
+  InviteUserRequest,
+  MemberAccountScopeRequest,
+  UpdateMemberRequest,
+} from '@finagent/contracts';
 import type { z } from 'zod';
 import { config } from '../../config.js';
 import { Errors } from '../../common/errors.js';
@@ -49,6 +54,8 @@ export class UsersController {
         select: {
           id: true,
           status: true,
+          accountScope: true,
+          bankAccounts: { select: { bankAccountId: true } },
           createdAt: true,
           user: { select: { id: true, email: true, fullName: true, lastLoginAt: true } },
           role: { select: { id: true, key: true, name: true } },
@@ -236,5 +243,55 @@ export class UsersController {
       );
       return updated;
     });
+  }
+
+  /** Alcance por cuenta bancaria: todas o solo las seleccionadas. */
+  @Put(':memberId/bank-accounts')
+  @Org('users.manage')
+  async setAccountScope(
+    @CurrentMembership() m: ActiveMembership,
+    @Param('memberId', ParseUUIDPipe) memberId: string,
+    @Body(new ZodPipe(MemberAccountScopeRequest)) body: z.output<typeof MemberAccountScopeRequest>,
+  ) {
+    if (memberId === m.memberId) throw Errors.forbidden('No puede cambiar su propio alcance.');
+    const target = await this.prisma.organizationMember.findFirst({
+      where: { id: memberId, organizationId: m.organizationId },
+      include: { bankAccounts: true },
+    });
+    if (!target) throw Errors.notFound('El usuario');
+    const ids = body.scope === 'ALL' ? [] : [...new Set(body.bankAccountIds)];
+    if (body.scope === 'SELECTED') {
+      if (!ids.length)
+        throw Errors.badRequest('ACCOUNTS_REQUIRED', 'Seleccione al menos una cuenta bancaria.');
+      const valid = await this.prisma.bankAccount.count({
+        where: { organizationId: m.organizationId, id: { in: ids } },
+      });
+      if (valid !== ids.length) throw Errors.notFound('Una de las cuentas bancarias');
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await tx.memberBankAccount.deleteMany({ where: { memberId } });
+      if (ids.length)
+        await tx.memberBankAccount.createMany({
+          data: ids.map((bankAccountId) => ({ memberId, bankAccountId })),
+        });
+      await tx.organizationMember.update({
+        where: { id: memberId },
+        data: { accountScope: body.scope },
+      });
+      await this.audit.record(
+        {
+          action: 'MEMBER_ACCOUNT_SCOPE_UPDATED',
+          entity: 'organization_member',
+          entityId: memberId,
+          before: {
+            scope: target.accountScope,
+            bankAccountIds: target.bankAccounts.map((b) => b.bankAccountId),
+          },
+          after: { scope: body.scope, bankAccountIds: ids },
+        },
+        tx,
+      );
+    });
+    return { scope: body.scope, bankAccountIds: ids };
   }
 }

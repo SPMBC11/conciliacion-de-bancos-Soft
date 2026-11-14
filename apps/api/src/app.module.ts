@@ -3,6 +3,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { config } from './config.js';
 import { correlationIdOf, requestContextMiddleware } from './common/request-context.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { MasterDataModule } from './modules/master-data/master-data.module.js';
 import { InfrastructureModule } from './infrastructure/infrastructure.module.js';
 import { HealthController } from './modules/health/health.controller.js';
 
@@ -24,6 +25,7 @@ import { HealthController } from './modules/health/health.controller.js';
     }),
     InfrastructureModule,
     AuthModule,
+    MasterDataModule,
   ],
   controllers: [HealthController],
 })
