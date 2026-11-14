@@ -9,7 +9,7 @@ RUN npm ci
 COPY tsconfig.base.json ./
 COPY packages packages
 COPY apps/web apps/web
-RUN npm run build -w @finagent/contracts -w @finagent/web
+RUN npm run build -w @finagent/domain -w @finagent/contracts -w @finagent/web
 
 FROM nginx:1.28-alpine
 COPY infra/docker/nginx.conf /etc/nginx/conf.d/default.conf

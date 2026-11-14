@@ -56,3 +56,4 @@ docs/             Documentación por fase
 
 - [Fase 0 — Auditoría y planificación](docs/PHASE-0-AUDIT.md)
 - [Fase 1 — Fundación](docs/PHASE-1-FOUNDATION.md)
+- [Fase 2 — Design system y layout](docs/PHASE-2-DESIGN-SYSTEM.md)

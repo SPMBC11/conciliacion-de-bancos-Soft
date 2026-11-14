@@ -13,3 +13,4 @@ test-results/
 uploads/
 *.real.*
 dist-worker-dev/
+*.tsbuildinfo
