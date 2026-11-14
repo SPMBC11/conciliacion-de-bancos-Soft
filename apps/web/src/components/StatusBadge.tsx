@@ -3,6 +3,9 @@ import {
   Ban,
   CheckCheck,
   CheckCircle2,
+  Mail,
+  UserCheck,
+  UserX,
   CircleDashed,
   Clock,
   Copy,
@@ -46,6 +49,10 @@ export const STATUSES = {
   ADJUSTMENT_PROPOSED: { label: 'Ajuste propuesto', icon: CircleDashed, tone: 'info' },
   POSSIBLE_DUPLICATE: { label: 'Posible duplicado', icon: Copy, tone: 'warning' },
   DISCARDED: { label: 'Descartado', icon: Ban, tone: 'neutral' },
+  // Usuarios
+  USER_ACTIVE: { label: 'Activo', icon: UserCheck, tone: 'success' },
+  USER_DISABLED: { label: 'Desactivado', icon: UserX, tone: 'neutral' },
+  INVITED: { label: 'Invitación pendiente', icon: Mail, tone: 'info' },
 } satisfies Record<string, { label: string; icon: LucideIcon; tone: Tone }>;
 
 export type StatusKey = keyof typeof STATUSES;

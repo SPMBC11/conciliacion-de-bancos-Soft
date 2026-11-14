@@ -19,6 +19,12 @@ const Env = z.object({
   S3_BUCKET: z.string(),
   S3_ACCESS_KEY: z.string(),
   S3_SECRET_KEY: z.string(),
+  SMTP_HOST: z.string(),
+  SMTP_PORT: z.coerce.number().int(),
+  MAIL_FROM: z.string().default('FinAgent AI <no-reply@finagent.local>'),
+  JWT_SECRET: z.string().min(32, 'JWT_SECRET debe tener al menos 32 caracteres.'),
+  COOKIE_SECURE: z.stringbool().default(false),
+  AUTH_RATE_LIMIT: z.coerce.number().int().positive().default(10),
 });
 
 const parsed = Env.safeParse(process.env);

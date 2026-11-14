@@ -9,7 +9,12 @@ export default defineConfig({
   test: {
     include: ['test/**/*.test.ts'],
     globalSetup: ['test/global-setup.ts'],
-    env: { NODE_ENV: 'test', LOG_LEVEL: 'silent', DATABASE_URL: TEST_DATABASE_URL },
+    env: {
+      NODE_ENV: 'test',
+      LOG_LEVEL: 'silent',
+      DATABASE_URL: TEST_DATABASE_URL,
+      AUTH_RATE_LIMIT: '1000',
+    },
     testTimeout: 15000,
     fileParallelism: false,
   },

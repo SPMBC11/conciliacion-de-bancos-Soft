@@ -6,10 +6,12 @@ import { config } from '../../config.js';
 import { PrismaService } from '../../infrastructure/prisma.service.js';
 import { RedisService } from '../../infrastructure/redis.service.js';
 import { StorageService } from '../../infrastructure/storage.service.js';
+import { Public } from '../auth/decorators.js';
 
 const up = (ok: boolean) => (ok ? 'up' : 'down');
 
 @ApiTags('health')
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(

@@ -20,7 +20,14 @@ npm run db:migrate        # aplica migraciones
 npm run dev               # API :3000, worker y web :5173
 ```
 
-Abrir http://localhost:5173 → debe mostrar los tres servicios “✓ Operativo”.
+Crear la primera organización y su Propietario (imprime un enlace de invitación; el correo también llega a Mailpit):
+
+```bash
+npm run build -w @finagent/domain -w @finagent/contracts && npm run build -w @finagent/api
+npm run bootstrap -w @finagent/api -- --nit 900000001-1 --name "Mi Empresa S.A.S." --email yo@empresa.co
+```
+
+Abrir el enlace, definir la contraseña (mínimo 12 caracteres) y entrar en http://localhost:5173. El registro de usuarios es solo por invitación.
 
 | Servicio                        | URL                            |
 | ------------------------------- | ------------------------------ |
@@ -57,3 +64,4 @@ docs/             Documentación por fase
 - [Fase 0 — Auditoría y planificación](docs/PHASE-0-AUDIT.md)
 - [Fase 1 — Fundación](docs/PHASE-1-FOUNDATION.md)
 - [Fase 2 — Design system y layout](docs/PHASE-2-DESIGN-SYSTEM.md)
+- [Fase 3 — Autenticación y administración](docs/PHASE-3-AUTH.md)

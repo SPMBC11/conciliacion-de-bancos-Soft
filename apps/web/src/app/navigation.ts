@@ -34,6 +34,7 @@ import {
   FileInput,
   Hourglass,
 } from 'lucide-react';
+import type { PermissionKey } from '@finagent/contracts';
 
 export type NavItem = {
   path: string;
@@ -41,12 +42,14 @@ export type NavItem = {
   icon: LucideIcon;
   /** Fase en la que la pantalla queda funcional. El menú solo muestra lo ya implementado. */
   phase: number;
+  /** Permiso necesario para ver la pantalla (el backend lo vuelve a verificar). */
+  permission?: PermissionKey;
 };
 
 export type NavGroup = { label: string; items: NavItem[] };
 
 /** Fase actual del proyecto: controla qué rutas aparecen en el menú (no hay enlaces sin funcionalidad). */
-export const CURRENT_PHASE = 2;
+export const CURRENT_PHASE = 3;
 
 /** Mapa completo de navegación (sección 6 del master prompt). Única fuente de verdad de rutas. */
 export const NAVIGATION: NavGroup[] = [
@@ -143,8 +146,20 @@ export const NAVIGATION: NavGroup[] = [
         phase: 4,
       },
       { path: '/administration/periods', label: 'Periodos', icon: CalendarRange, phase: 4 },
-      { path: '/administration/users', label: 'Usuarios', icon: Users, phase: 3 },
-      { path: '/administration/roles', label: 'Roles y permisos', icon: ShieldCheck, phase: 3 },
+      {
+        path: '/administration/users',
+        label: 'Usuarios',
+        icon: Users,
+        phase: 3,
+        permission: 'users.read',
+      },
+      {
+        path: '/administration/roles',
+        label: 'Roles y permisos',
+        icon: ShieldCheck,
+        phase: 3,
+        permission: 'users.read',
+      },
       {
         path: '/administration/rules',
         label: 'Reglas de conciliación',
@@ -158,7 +173,13 @@ export const NAVIGATION: NavGroup[] = [
         phase: 6,
       },
       { path: '/administration/holidays', label: 'Festivos', icon: CalendarDays, phase: 4 },
-      { path: '/administration/audit', label: 'Auditoría', icon: ScrollText, phase: 3 },
+      {
+        path: '/administration/audit',
+        label: 'Auditoría',
+        icon: ScrollText,
+        phase: 3,
+        permission: 'audit.read',
+      },
     ],
   },
   {
@@ -170,10 +191,14 @@ export const NAVIGATION: NavGroup[] = [
   },
 ];
 
-export function visibleNavigation(phase = CURRENT_PHASE): NavGroup[] {
-  return NAVIGATION.map((g) => ({ ...g, items: g.items.filter((i) => i.phase <= phase) })).filter(
-    (g) => g.items.length > 0,
-  );
+export function visibleNavigation(
+  phase = CURRENT_PHASE,
+  can: (p: PermissionKey) => boolean = () => true,
+): NavGroup[] {
+  return NAVIGATION.map((g) => ({
+    ...g,
+    items: g.items.filter((i) => i.phase <= phase && (!i.permission || can(i.permission))),
+  })).filter((g) => g.items.length > 0);
 }
 
 export function findNavItem(pathname: string): { group: NavGroup; item: NavItem } | undefined {

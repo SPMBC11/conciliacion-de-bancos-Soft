@@ -3,6 +3,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import { PeriodProvider } from '@/app/period';
+import { AuthProvider } from '@/auth/auth-provider';
 import { router } from '@/app/router';
 import { Toaster } from '@/components/Toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -15,12 +16,14 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <PeriodProvider>
-          <TooltipProvider delayDuration={300}>
-            <RouterProvider router={router} />
-            <Toaster />
-          </TooltipProvider>
-        </PeriodProvider>
+        <AuthProvider>
+          <PeriodProvider>
+            <TooltipProvider delayDuration={300}>
+              <RouterProvider router={router} />
+              <Toaster />
+            </TooltipProvider>
+          </PeriodProvider>
+        </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>
   </StrictMode>,

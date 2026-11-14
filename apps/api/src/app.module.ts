@@ -1,7 +1,8 @@
-import { randomUUID } from 'node:crypto';
-import { Module } from '@nestjs/common';
+import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
 import { config } from './config.js';
+import { correlationIdOf, requestContextMiddleware } from './common/request-context.js';
+import { AuthModule } from './modules/auth/auth.module.js';
 import { InfrastructureModule } from './infrastructure/infrastructure.module.js';
 import { HealthController } from './modules/health/health.controller.js';
 
@@ -12,7 +13,7 @@ import { HealthController } from './modules/health/health.controller.js';
         level: config.LOG_LEVEL,
         // Correlation ID: se respeta el del cliente o se genera uno; se devuelve en la respuesta.
         genReqId: (req, res) => {
-          const id = (req.headers['x-correlation-id'] as string | undefined) ?? randomUUID();
+          const id = correlationIdOf(req as never);
           res.setHeader('x-correlation-id', id);
           return id;
         },
@@ -22,7 +23,12 @@ import { HealthController } from './modules/health/health.controller.js';
       },
     }),
     InfrastructureModule,
+    AuthModule,
   ],
   controllers: [HealthController],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(requestContextMiddleware).forRoutes('*path');
+  }
+}

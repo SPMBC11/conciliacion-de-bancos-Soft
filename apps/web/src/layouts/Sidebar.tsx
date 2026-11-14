@@ -1,6 +1,7 @@
 import { PanelLeftClose, PanelLeftOpen, Palette } from 'lucide-react';
 import { NavLink } from 'react-router';
 import { type NavItem, visibleNavigation } from '@/app/navigation';
+import { useAuth } from '@/auth/auth-provider';
 import { Logo } from '@/components/Logo';
 import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -59,7 +60,8 @@ type SidebarProps = {
 };
 
 export function Sidebar({ collapsed = false, onToggle, onNavigate, className }: SidebarProps) {
-  const groups = visibleNavigation();
+  const { can } = useAuth();
+  const groups = visibleNavigation(undefined, can);
   if (DEV_ITEMS.length) groups.push({ label: 'Desarrollo', items: DEV_ITEMS });
 
   return (

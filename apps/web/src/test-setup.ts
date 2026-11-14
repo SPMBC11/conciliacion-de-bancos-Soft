@@ -15,6 +15,8 @@ if (typeof window !== 'undefined') {
   afterEach(() => {
     cleanup();
     localStorage.clear();
+    vi.unstubAllGlobals();
+    document.cookie = 'fa_csrf=; max-age=0';
     delete document.documentElement.dataset.theme;
   });
 }

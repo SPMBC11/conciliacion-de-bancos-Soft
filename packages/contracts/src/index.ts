@@ -17,3 +17,5 @@ export const ApiError = z.object({
   correlationId: z.string(),
 });
 export type ApiError = z.infer<typeof ApiError>;
+
+export * from './auth.js';
