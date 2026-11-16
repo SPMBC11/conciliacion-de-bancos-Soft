@@ -2,6 +2,7 @@ import type { PermissionKey } from '@finagent/contracts';
 import type { ComponentType } from 'react';
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 import { AnonymousOnly, RequireAuth, RequirePermission } from '@/auth/guards';
+import { LoadingState } from '@/components/States';
 import { NotFoundPage } from '@/features/errors/NotFoundPage';
 import { AppLayout } from '@/layouts/AppLayout';
 
@@ -255,4 +256,7 @@ export const routes: RouteObject[] = [
   },
 ];
 
-export const router = createBrowserRouter(routes);
+// Raíz sin ruta: muestra un indicador mientras carga la primera página diferida (evita el aviso HydrateFallback).
+export const router = createBrowserRouter([
+  { HydrateFallback: () => <LoadingState />, children: routes },
+]);

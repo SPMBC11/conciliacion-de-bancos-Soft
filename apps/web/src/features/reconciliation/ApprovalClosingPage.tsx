@@ -55,7 +55,7 @@ export function ApprovalClosingPage() {
   const accounts = useQuery({
     queryKey: useOrgKey('chart-of-accounts', 'movement'),
     queryFn: () =>
-      api<GlAccount[]>('/api/master-data/chart-of-accounts', { query: { onlyMovement: 'true' } }),
+      api<GlAccount[]>('/api/chart-of-accounts', { query: { onlyMovement: 'true' } }),
   });
   const refresh = async () => {
     await client.invalidateQueries({ queryKey: recordsKey });
